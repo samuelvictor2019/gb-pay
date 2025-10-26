@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pay with Monnify</title>
+  <script
+    type="text/javascript"
+    src="https://sdk.monnify.com/plugin/monnify.js"
+  ></script>
+
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: #f7f7f7;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+    h2 {
+      color: #222;
+      margin-bottom: 10px;
+    }
+    p {
+      color: #555;
+      font-size: 1rem;
+      margin-bottom: 30px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1.1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+
+  <script>
+    // ✅ Helper to get query parameters
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
+
+    // ✅ Initialize Monnify SDK dynamically
+    function payWithMonnify() {
+      const amount = getQueryParam("amount") || "100";
+      const customerName = getQueryParam("customer") || "Customer";
+      const customerEmail = `${customerName.replace(/\s+/g, "").toLowerCase()}@example.com`;
+
+      MonnifySDK.initialize({
+        amount: parseFloat(amount),
+        currency: "NGN",
+        reference: "TXN-" + new Date().getTime(),
+        customerFullName: customerName,
+        customerEmail: customerEmail,
+        apiKey: "MK_PROD_FLX4P92EDF", // Replace with your live/test key
+        contractCode: "626609763141",
+        paymentDescription: "ChopChat Order Payment",
+        metadata: {
+          customer: customerName,
+        },
+        onLoadStart: () => console.log("Loading Monnify..."),
+        onLoadComplete: () => console.log("Monnify SDK Ready"),
+        onComplete: function (response) {
+          console.log("✅ Payment Complete:", response);
+          alert("Payment Successful! Thank you, " + customerName + " 🎉");
+          // Optionally redirect back to WhatsApp or your bot server here
+        },
+        onClose: function (data) {
+          console.log("❌ Payment closed:", data);
+        },
+      });
+    }
+
+    // ✅ Auto-run payment modal once page loads
+    window.onload = function () {
+      const name = getQueryParam("customer");
+      const amount = getQueryParam("amount");
+      document.getElementById("name").innerText = name || "Customer";
+      document.getElementById("amount").innerText = amount ? `₦${amount}` : "₦0";
+    };
+  </script>
+</head>
+
+<body>
+  <h2>Pay with Monnify</h2>
+  <p>
+    Hello <strong id="name"></strong> 👋<br />
+    You’re about to pay <strong id="amount"></strong> for your order.
+  </p>
+  <button type="button" onclick="payWithMonnify()">Pay Now</button>
+</body>
+</html>
