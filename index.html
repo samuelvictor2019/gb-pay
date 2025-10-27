@@ -32,7 +32,7 @@
       <footer>Powered by ChopChat</footer> </div> 
     <!-- Monnify SDK --> 
     <script src="https://sdk.monnify.com/plugin/monnify.js"></script> 
-    <!-- <script> // --- Read query parameters --- 
+    <script> // --- Read query parameters --- 
       const params = new URLSearchParams(window.location.search); 
       const customerName = decodeURIComponent(params.get("customer") || "Valued Customer"); 
       const customerEmail = params.get("email") || "customer@example.com"; 
@@ -78,9 +78,9 @@
             else { alert("Payment not completed. Please try again."); } }, 
           onClose: function () { 
             console.log("❌ Payment modal closed by user."); }, }); }); 
-    </script>  -->
+    </script> 
 
-    <script>
+    <!-- <script>
   // Read query parameters (hosted on GitHub Pages you can pass publicKey & callback via query)
   const params = new URLSearchParams(window.location.search);
   const customerName = decodeURIComponent(params.get("customer") || "Valued Customer");
@@ -151,9 +151,10 @@
       onClose: window.monnifyOnClose
     });
   });
-</script>
+</script> -->
   </body> 
 </html>
+
 
 
 
