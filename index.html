@@ -59,6 +59,7 @@
       color: #777;
     }
   </style>
+  <script type="text/javascript" src="https://sdk.monnify.com/plugin/monnify.js"></script>
 </head>
 <body>
   <div class="card">
@@ -70,20 +71,58 @@
   </div>
 
   <script>
-    // --- Get parameters from the URL ---
+    // --- Read query parameters passed to pay.html ---
     const params = new URLSearchParams(window.location.search);
-    const name = params.get("customer") || "Valued Customer";
-    const amount = params.get("amount") || "0.00";
+    const customerName = decodeURIComponent(params.get("customer") || "Valued Customer");
+    const customerEmail = params.get("email") || "customer@example.com";
+    const customerPhone = params.get("phone") || "00000000000";
+    const amount = parseFloat(params.get("amount") || "0.00");
+    const orderId = params.get("order_id") || "";
+    const botCallback = params.get("callback_url"); // Flask endpoint to notify on success
 
-    // --- Populate the HTML ---
-    document.getElementById("customer-name").textContent = decodeURIComponent(name);
-    document.getElementById("amount").textContent = parseFloat(amount).toLocaleString();
+    // --- Update page info ---
+    document.getElementById("customer-name").textContent = customerName;
+    document.getElementById("amount").textContent = amount.toLocaleString();
 
-    // --- Payment button behavior ---
+    // --- Payment trigger ---
     document.getElementById("payBtn").addEventListener("click", () => {
-      // Example: Redirect to Monnify or your payment processor
-      const redirectURL = `https://monnify.com/pay?name=${encodeURIComponent(name)}&amount=${amount}`;
-      window.location.href = redirectURL;
+      const paymentRef = "GB_" + Math.floor(Math.random() * 1000000000);
+
+      MonnifySDK.initialize({
+        amount: amount,
+        currency: "NGN",
+        reference: paymentRef,
+        customerName: customerName,
+        customerEmail: customerEmail,
+        customerPhone: customerPhone,
+        apiKey: "MK_TEST_B5S5KMGHNT",
+        contractCode: "648444677794",
+        paymentDescription: "GroceryBazaar Order Payment",
+        isTestMode: true,  // Set to false in production
+        onComplete: async function(response) {
+          if (response && response.paymentReference) {
+            // Notify your backend that payment succeeded
+            if (botCallback) {
+              await fetch(botCallback, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  order_id: orderId,
+                  payment_reference: response.paymentReference,
+                  amount: amount,
+                  status: response.paymentStatus || "SUCCESS"
+                })
+              });
+            }
+            alert("✅ Payment successful! You can close this page now.");
+          } else {
+            alert("Payment not completed. Please try again.");
+          }
+        },
+        onClose: function() {
+          console.log("Payment modal closed.");
+        }
+      });
     });
   </script>
 </body>
