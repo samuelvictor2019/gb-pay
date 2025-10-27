@@ -25,58 +25,43 @@
     <footer>Powered by GroceryBazaar</footer>
   </div>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const customer = decodeURIComponent(params.get("customer") || "Valued Customer");
-    const email = params.get("email") || "customer@example.com";
-    const phone = params.get("phone") || "00000000000";
-    const amount = parseFloat(params.get("amount") || "0.00");
-    const orderId = params.get("order_id") || "";
-    const botCallback = params.get("callback_url") || "";  // your backend endpoint
+ <script src="https://sdk.monnify.com/plugin/monnify.js"></script>
+<script>
+  const query = new URLSearchParams(window.location.search);
+  const amount = parseFloat(query.get("amount")) || 0;
+  const order_id = query.get("order_id");
+  const customer = query.get("customer");
 
-    document.getElementById("customer-name").textContent = customer;
-    document.getElementById("amount").textContent = amount.toLocaleString();
-
-    document.getElementById("payBtn").addEventListener("click", () => {
-      const paymentRef = "GB_" + new Date().getTime();
-
-      MonnifySDK.initialize({
-        amount: amount,
-        currency: "NGN",
-        reference: paymentRef,
-        customerFullName: customer,
-        customerEmail: email,
-        customerMobileNumber: phone,          // if SDK supports
-        apiKey: "MK_TEST_B5S5KMGHNT",       // your test key
-        contractCode: "648444677794",
-        paymentDescription: "GroceryBazaar Order " + orderId,
-        // Optional:
-        metadata: { order_id: orderId, customer: customer },
-        onComplete: async function(response) {
-          console.log("Payment complete:", response);
-          if (response.paymentStatus === "PAID" || response.paymentStatus === "SUCCESS") {
-            if (botCallback) {
-              await fetch(botCallback, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  order_id: orderId,
-                  payment_reference: response.paymentReference,
-                  amount: amount,
-                  status: response.paymentStatus
-                })
-              });
-            }
-            alert("✅ Payment successful! You may close this page.");
-          } else {
-            alert("⚠️ Payment not successful: " + response.paymentStatus);
-          }
-        },
-        onClose: function(data) {
-          console.log("Payment window closed by user", data);
+  function payWithMonnify() {
+    MonnifySDK.initialize({
+      amount: amount,
+      currency: "NGN",
+      reference: "ORD_" + order_id + "_" + Date.now(),
+      customerName: customer,
+      customerEmail: "customer@email.com",
+      apiKey: "MK_TEST_SOMETHING", // your real Monnify API Key
+      contractCode: "1234567890",  // your real Monnify Contract Code
+      paymentDescription: "Payment for Order " + order_id,
+      metadata: {
+        order_id: order_id
+      },
+      onComplete: function(response) {
+        console.log("Payment completed:", response);
+        if (response.paymentReference) {
+          window.location.href = `https://your-backend.ngrok-free.app/payment_callback?reference=${response.paymentReference}&order_id=${order_id}`;
         }
-      });
+      },
+      onClose: function(data) {
+        console.log("Payment closed:", data);
+        alert("Payment was closed or cancelled.");
+      }
     });
-  </script>
+  }
+
+  // auto-trigger
+  window.onload = payWithMonnify;
+</script>
+
 </body>
 </html>
+
