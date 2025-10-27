@@ -39,8 +39,8 @@
       reference: "ORD_" + order_id + "_" + Date.now(),
       customerName: customer,
       customerEmail: "customer@email.com",
-      apiKey: "MK_TEST_SOMETHING", // your real Monnify API Key
-      contractCode: "1234567890",  // your real Monnify Contract Code
+      apiKey: "MK_TEST_DQWAW20SDK", // your real Monnify API Key
+      contractCode: "7035989501",  // your real Monnify Contract Code
       paymentDescription: "Payment for Order " + order_id,
       metadata: {
         order_id: order_id
@@ -48,7 +48,7 @@
       onComplete: function(response) {
         console.log("Payment completed:", response);
         if (response.paymentReference) {
-          window.location.href = `https://your-backend.ngrok-free.app/payment_callback?reference=${response.paymentReference}&order_id=${order_id}`;
+          window.location.href = `https://https://0aa7fe7adb54.ngrok-free.app/payment_callback?reference=${response.paymentReference}&order_id=${order_id}`;
         }
       },
       onClose: function(data) {
@@ -64,4 +64,5 @@
 
 </body>
 </html>
+
 
