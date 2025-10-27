@@ -80,101 +80,53 @@
             console.log("❌ Payment modal closed by user."); }, }); }); 
     </script>  -->
 
-        <script>
-      // Ensure callbacks are global functions (SDK expects global callables)
-      window.monnifyOnComplete = function (response) {
-        console.log("✅ Payment Response:", response);
-        if (response && response.paymentReference) {
-          if (botCallback) {
-            // fire-and-forget callback back to your bot server
-            fetch(botCallback, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                order_id: orderId,
-                payment_reference: response.paymentReference,
-                amount: amount,
-                status: response.paymentStatus || "SUCCESS"
-              })
-            }).catch(err => console.error("Callback error:", err));
-          }
-          alert("✅ Payment successful! You can close this page now.");
-        } else {
-          alert("Payment not completed. Please try again.");
-        }
-      };
-
-      window.monnifyOnClose = function () {
-        console.log("❌ Payment modal closed by user.");
-      };
-
-      // --- Read query parameters ---
+     <script>
       const params = new URLSearchParams(window.location.search);
       const customerName = decodeURIComponent(params.get("customer") || "Valued Customer");
       const customerEmail = params.get("email") || "customer@example.com";
       const customerPhone = params.get("phone") || "00000000000";
       const amount = parseFloat(params.get("amount") || "0.00");
       const orderId = params.get("order_id") || "";
-      const botCallback = params.get("callback_url");
-      // --- Update page info ---
+      const botCallback = params.get("callback_url") || "";
+
       document.getElementById("customer-name").textContent = customerName;
       document.getElementById("amount").textContent = amount.toLocaleString();
-      // --- Start Payment ---
-      document.getElementById("payBtn").addEventListener("click", () => {
-       const paymentRef = "GB_" + Math.floor(Math.random() * 1000000000);
-        if (typeof MonnifySDK === "undefined") {
-          alert("Payment SDK failed to load. Please try again later.");
-          return;
+
+      document.getElementById("payBtn").addEventListener("click", async () => {
+        try {
+          const resp = await fetch("/init_payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              amount: amount,
+              customerName: customerName,
+              customerEmail: customerEmail,
+              customerPhone: customerPhone,
+              order_id: orderId,
+              callback_url: botCallback
+            })
+          });
+          const data = await resp.json();
+          if (!resp.ok) {
+            console.error("Init error:", data);
+            alert("Failed to start payment. Try again.");
+            return;
+          }
+          if (data.checkoutUrl) {
+            // redirect to Monnify checkout
+            window.location.href = data.checkoutUrl;
+          } else {
+            console.error("No checkoutUrl:", data);
+            alert("Payment init failed. See console for details.");
+          }
+        } catch (err) {
+          console.error("Network/init error:", err);
+          alert("Network error when starting payment.");
         }
-         // ✅ Working Monnify Initialization
-         MonnifySDK.initialize({
-           amount: amount,
-           currency: "NGN",
-           reference: paymentRef,
-           customerName: customerName,
-           customerEmail: customerEmail,
-          apiKey: "MK_TEST_B5S5KMGHNT",
-          // keep your test/public key here – verify name required by your SDK version (apiKey/publicKey)
-          apiKey: "MK_TEST_B5S5KMGHNT",
-           // your test key
-           contractCode: "648444677794",
-           // your contract code
-           paymentDescription: "GroceryBazaar Order Payment",
-           isTestMode: true, // ✅ Must be valid JS functions (not undefined)
-          onComplete: async function (response) {
-            console.log("✅ Payment Response:", response);
-            if (response && response.paymentReference) {
-              try {
-                if (botCallback) {
-                  await fetch(botCallback, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      order_id: orderId,
-                      payment_reference: response.paymentReference,
-                      amount: amount,
-                      status: response.paymentStatus || "SUCCESS"
-                    })
-                  });
-                }
-                alert("✅ Payment successful! You can close this page now.");
-              } catch (err) {
-                console.error("Error sending callback:", err);
-              }
-            } else {
-              alert("Payment not completed. Please try again.");
-            }
-          },
-          onClose: function () {
-            console.log("❌ Payment modal closed by user.");
-          },
-          // pass global function references (not inline async functions)
-          onComplete: window.monnifyOnComplete,
-          onClose: window.monnifyOnClose,
-         });
-       });
-     </script>
+      });
+    </script>
     
   </body> 
 </html>
+
 
