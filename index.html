@@ -80,53 +80,80 @@
             console.log("❌ Payment modal closed by user."); }, }); }); 
     </script>  -->
 
-     <script>
-      const params = new URLSearchParams(window.location.search);
-      const customerName = decodeURIComponent(params.get("customer") || "Valued Customer");
-      const customerEmail = params.get("email") || "customer@example.com";
-      const customerPhone = params.get("phone") || "00000000000";
-      const amount = parseFloat(params.get("amount") || "0.00");
-      const orderId = params.get("order_id") || "";
-      const botCallback = params.get("callback_url") || "";
+    <script>
+  // Read query parameters (hosted on GitHub Pages you can pass publicKey & callback via query)
+  const params = new URLSearchParams(window.location.search);
+  const customerName = decodeURIComponent(params.get("customer") || "Valued Customer");
+  const customerEmail = params.get("email") || "customer@example.com";
+  const customerPhone = params.get("phone") || "00000000000";
+  const amount = parseFloat(params.get("amount") || "0.00");
+  const orderId = params.get("order_id") || "";
+  const botCallback = params.get("callback_url") || ""; // MUST be public (ngrok url)
+  const publicKey = params.get("public_key") || params.get("apiKey") || ""; // Monnify public key
+  const contractCode = params.get("contract_code") || ""; // Monnify contract code
 
-      document.getElementById("customer-name").textContent = customerName;
-      document.getElementById("amount").textContent = amount.toLocaleString();
+  document.getElementById("customer-name").textContent = customerName;
+  document.getElementById("amount").textContent = amount.toLocaleString();
 
-      document.getElementById("payBtn").addEventListener("click", async () => {
-        try {
-          const resp = await fetch("/init_payment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              amount: amount,
-              customerName: customerName,
-              customerEmail: customerEmail,
-              customerPhone: customerPhone,
-              order_id: orderId,
-              callback_url: botCallback
-            })
-          });
-          const data = await resp.json();
-          if (!resp.ok) {
-            console.error("Init error:", data);
-            alert("Failed to start payment. Try again.");
-            return;
-          }
-          if (data.checkoutUrl) {
-            // redirect to Monnify checkout
-            window.location.href = data.checkoutUrl;
-          } else {
-            console.error("No checkoutUrl:", data);
-            alert("Payment init failed. See console for details.");
-          }
-        } catch (err) {
-          console.error("Network/init error:", err);
-          alert("Network error when starting payment.");
-        }
-      });
-    </script>
-    
+  // global callbacks required by some SDK versions
+  window.monnifyOnComplete = function(response) {
+    console.log("Monnify onComplete:", response);
+    // Example response: { paymentReference: 'xxxx', paymentStatus: 'PAID', ... }
+    const payload = {
+      order_id: orderId,
+      payment_reference: response.paymentReference || response.payment_reference || null,
+      amount: amount,
+      status: response.paymentStatus || 'PAID'
+    };
+
+    // POST to your Flask bot callback (must be public - use ngrok URL)
+    if (botCallback) {
+      fetch(botCallback, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).then(r => console.log("Bot callback status:", r.status)).catch(err => console.error("Bot callback error:", err));
+    } else {
+      console.warn("No bot callback URL provided - payment result not forwarded.");
+    }
+
+    // Optionally show success UI and then close / redirect
+    alert("Payment completed. Thank you!");
+    try { window.close(); } catch(e) {}
+  };
+
+  window.monnifyOnClose = function(data) {
+    console.log("Monnify onClose", data);
+  };
+
+  document.getElementById("payBtn").addEventListener("click", function() {
+    if (!publicKey || !contractCode) {
+      alert("Payment configuration missing (publicKey/contractCode).");
+      return;
+    }
+    if (typeof MonnifySDK === "undefined") {
+      alert("Monnify SDK failed to load.");
+      return;
+    }
+
+    // Use publicKey (client SDK) and contractCode only
+    MonnifySDK.initialize({
+      amount: amount,
+      currency: "NGN",
+      reference: "CK_" + Math.floor(Math.random()*100000000),
+      customerName: customerName,
+      customerEmail: customerEmail,
+      customerMobile: customerPhone,
+      publicKey: publicKey,         // client/public key
+      contractCode: contractCode,   // contract code
+      paymentDescription: "Order payment",
+      onComplete: window.monnifyOnComplete,
+      onClose: window.monnifyOnClose
+    });
+  });
+</script>
   </body> 
 </html>
+
 
 
